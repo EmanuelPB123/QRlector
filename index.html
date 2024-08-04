@@ -114,16 +114,18 @@
             align-items: center;
         }
         .qr-container canvas, .qr-container img {
-            width: 50px;
-            height: 50px;
+            width: 70px;
+            height: 70px;
             margin-right: 20px;
+            margin-left: 20px;
         }
         .action-buttons img {
             width: 20px;
             height: 20px;
             cursor: pointer;
-            margin-left: 10px;
+            margin-left: 0px;
             align-items: center;
+            padding: 4px 4px;
         }
         .video-container {
             display: none;
@@ -236,6 +238,7 @@
                     </div>
                     <div class="action-buttons">
                         <img src="printer-icon.png" alt="Imprimir QR" onclick="printQRCode('${product}')"/>
+                        <br>
                         <img src="edit-icon.png" alt="Editar" onclick="editItem('${product}')"/>
                     </div>
                 `;
@@ -441,3 +444,4 @@
     </script>
 </body>
 </html>
+
