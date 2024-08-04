@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lector de Códigos QR Instantáneo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qr-scanner/1.4.2/qr-scanner.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #video-container {
+            width: 300px;
+            height: 300px;
+            border: 2px solid #333;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        #qr-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #result-container {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        #error-message {
+            color: red;
+            margin-top: 10px;
+        }
+        #loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lector de Códigos QR Instantáneo</h1>
+    <div id="video-container">
+        <video id="qr-video"></video>
+        <div id="loading-message" class="hidden">Cargando cámara...</div>
+    </div>
+    <div id="result-container" class="hidden"></div>
+    <div id="error-message" class="hidden"></div>
+
+    <script>
+        const videoElement = document.getElementById('qr-video');
+        const resultContainer = document.getElementById('result-container');
+        const errorElement = document.getElementById('error-message');
+        const loadingMessage = document.getElementById('loading-message');
+
+        let qrScanner = null;
+        let lastResult = '';
+
+        function displayQRContent(content) {
+            if (content === lastResult) return; // Evita actualizar si el contenido no ha cambiado
+            lastResult = content;
+
+            resultContainer.innerHTML = '';
+            resultContainer.classList.remove('hidden');
+
+            if (content.startsWith('http://') || content.startsWith('https://')) {
+                const link = document.createElement('a');
+                link.href = content;
+                link.textContent = content;
+                link.target = '_blank';
+                resultContainer.appendChild(document.createTextNode('Enlace web: '));
+                resultContainer.appendChild(link);
+            } else if (content.includes('@') && content.includes('.')) {
+                const link = document.createElement('a');
+                link.href = `mailto:${content}`;
+                link.textContent = content;
+                resultContainer.appendChild(document.createTextNode('Correo electrónico: '));
+                resultContainer.appendChild(link);
+            } else if (/^\+?[\d\s()-]{10,}$/.test(content)) {
+                const link = document.createElement('a');
+                link.href = `tel:${content.replace(/\D/g,'')}`;
+                link.textContent = content;
+                resultContainer.appendChild(document.createTextNode('Número de teléfono: '));
+                resultContainer.appendChild(link);
+            } else if (content.startsWith('BEGIN:VCARD') && content.endsWith('END:VCARD')) {
+                const name = content.match(/FN:(.*)/);
+                const tel = content.match(/TEL:(.*)/);
+                const email = content.match(/EMAIL:(.*)/);
+                resultContainer.innerHTML = '<h3>Tarjeta de contacto:</h3>';
+                if (name) resultContainer.innerHTML += `<p>Nombre: ${name[1]}</p>`;
+                if (tel) {
+                    const telLink = document.createElement('a');
+                    telLink.href = `tel:${tel[1].replace(/\D/g,'')}`;
+                    telLink.textContent = tel[1];
+                    const telP = document.createElement('p');
+                    telP.appendChild(document.createTextNode('Teléfono: '));
+                    telP.appendChild(telLink);
+                    resultContainer.appendChild(telP);
+                }
+                if (email) {
+                    const emailLink = document.createElement('a');
+                    emailLink.href = `mailto:${email[1]}`;
+                    emailLink.textContent = email[1];
+                    const emailP = document.createElement('p');
+                    emailP.appendChild(document.createTextNode('Email: '));
+                    emailP.appendChild(emailLink);
+                    resultContainer.appendChild(emailP);
+                }
+            } else {
+                resultContainer.textContent = `Texto: ${content}`;
+            }
+        }
+
+        function startScanner() {
+            errorElement.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+            loadingMessage.classList.remove('hidden');
+
+            QrScanner.hasCamera().then(hasCamera => {
+                if (!hasCamera) {
+                    throw new Error('No se detectó ninguna cámara en este dispositivo.');
+                }
+
+                qrScanner = new QrScanner(
+                    videoElement,
+                    result => {
+                        displayQRContent(result.data);
+                    },
+                    { 
+                        returnDetailedScanResult: true,
+                        highlightScanRegion: true,
+                        highlightCodeOutline: true,
+                    }
+                );
+
+                qrScanner.start().then(() => {
+                    loadingMessage.classList.add('hidden');
+                }).catch(error => {
+                    loadingMessage.classList.add('hidden');
+                    errorElement.textContent = `Error al iniciar la cámara: ${error.message || error}`;
+                    errorElement.classList.remove('hidden');
+                    console.error('Error completo:', error);
+                });
+            }).catch(error => {
+                loadingMessage.classList.add('hidden');
+                errorElement.textContent = `Error: ${error.message || error}`;
+                errorElement.classList.remove('hidden');
+                console.error('Error completo:', error);
+            });
+        }
+
+        // Iniciar el escáner automáticamente cuando se carga la página
+        window.addEventListener('load', startScanner);
+    </script>
+</body>
+</html>
